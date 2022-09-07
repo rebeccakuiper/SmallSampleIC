@@ -1,11 +1,14 @@
 
 
+# Create correlation matrix from common correlation between predictors.
 make.cormat <- function(rho, preds) {
   cormat <- diag(length(preds)) # create k x k matrix
   cormat[cormat==0] <- rho      # equal off-diagonal elements
   cormat                        # return correlation matrix
 }
 
+# Create coefficients based on effect size, correlation between predictors and 
+# relative strength (weights) of the predictors.
 make.coefs <- function(R2, cormat, weights) {
   # regression coefficients are defined by the effect size R2, the correlations
   # between predictors, and the relative strength of the predictors (i.e., the
@@ -13,6 +16,7 @@ make.coefs <- function(R2, cormat, weights) {
   sqrt(R2 / sum(weights %*% t(weights) * cormat)) * weights
 }
 
+# Simulate the data (predictors - multivariate normal; and Y - univariate normal)
 make.data <- function(N, R2, coefs, cormat) {
   # generate multivariate normal predictors
   X <- MASS::mvrnorm(N, mu = rep(0, length(coefs)), cormat)
@@ -23,6 +27,8 @@ make.data <- function(N, R2, coefs, cormat) {
              Y = Y)
 }
 
+# Fit the AIC, AICc and BIC for either a subset of hypotheses (statistical models)
+# or all statistical models (possible given the available set of predictors)
 fit.aic <- function(hypos = c("all", "hypos"), data, formula) {
   
   # number of variables included in the model
@@ -87,6 +93,10 @@ fit.aic <- function(hypos = c("all", "hypos"), data, formula) {
   
 }
 
+# Fit the GORIC or GORICc for a user-defined subset of hypotheses (statistical models)
+# (the option to include all possible hypotheses is not feasible here, given that there
+# are infinitely many informative hypotheses the goric(c) could evaluate)
+
 fit.goric <- function(hypos, data, formula, comparison) {
   
   # Create hypotheses in environment
@@ -125,16 +135,21 @@ fit.goric <- function(hypos, data, formula, comparison) {
   
 }
 
+# Obtain IC weight of the true hypothesis (this also works for aic/bic output)
 true.weight <- function(goric.result, true.hypo) {
   # Obtain the IC-weight of the true hypothesis
   goric.result[goric.result$model == true.hypo, ]$weight
 }
 
+# Obtain hypothesis that got most support from the data (this also works for aic/bic output)
 best.hypo <- function(goric.result) {
   # Obtain the hypothesis with the most support
   goric.result[which.max(goric.result$weights), ]$model
 }
 
+# Calculate the relative strength of the best hypothesis with the true hypothesis
+# (if the true hypothesis is not the best hypothesis), or of the true hypothesis
+# with the second best hypothesis (if the true hypothesis is the best hypothesis)
 best.versus.true <- function(true.hypo, best.hypo, goric.result) {
   
   g <- goric.result
@@ -159,6 +174,8 @@ best.versus.true <- function(true.hypo, best.hypo, goric.result) {
   }
 }
 
+# Format the simulation data to have a nice and insightful output format (that is,
+# obtain the required information in a workable format)
 format.data <- function(results, true.hypo) {
   results %>%
     unnest_longer(output, indices_to = "Method") %>%
@@ -168,13 +185,15 @@ format.data <- function(results, true.hypo) {
     unnest_wider(support.ratio)
 }
 
-
+# create the figures for the true hypothesis rate.
 plot.thr <- function(results, true.hypo) {
   # Plot the true hypothesis rate
   results %>%
     group_by(N, R2, rho, Method) %>%
     summarize(THR = mean(best.hypo == true.hypo)) %>%
-    mutate(R2 = paste0(expression(italic(R^2)), " == ", round(R2, 2)),
+    mutate(R2 = ifelse(R2 < 0.02 | R2 > .9, 
+                       paste0(expression(italic(R^2)), " == ", sub('.', '', paste0(round(R2, 4)))),
+                       paste0(expression(italic(R^2)), " == ", sub('.', '', paste0(round(R2, 2))))),
            rho = paste0("rho == ", rho),
            `Sample size` = N) %>%
     ungroup() %>%
@@ -188,16 +207,19 @@ plot.thr <- function(results, true.hypo) {
     ylim(0, 1)
 }
 
+# create the figures for the IC-weights
 plot.weights <- function(results) {
   # Plot the average IC weights
   results %>%
     group_by(N, R2, rho, Method) %>%
-    summarize(Weight = mean(true.weight)) %>%
-    mutate(R2 = paste0(expression(italic(R^2)), " == ", round(R2, 2)),
+    summarize(weight = mean(true.weight)) %>%
+    mutate(R2 = ifelse(R2 < 0.02 | R2 > .9, 
+                       paste0(expression(italic(R^2)), " == ", sub('.', '', paste0(round(R2, 4)))),
+                       paste0(expression(italic(R^2)), " == ", sub('.', '', paste0(round(R2, 2))))),
            rho = paste0("rho == ", rho),
            `Sample size` = N) %>%
     ungroup() %>%
-    ggplot(aes(x = `Sample size`, y = Weight, col = Method)) +
+    ggplot(aes(x = `Sample size`, y = weight, col = Method)) +
     geom_point(shape = 17) +
     geom_line(linetype = 2) +
     scale_color_brewer(palette = "Set1", labels = c("Mean AIC weight", "Mean AICc weight")) +
@@ -207,19 +229,22 @@ plot.weights <- function(results) {
     ylim(0, 1)
 }
 
+# create the figures for the true hypothesis rate and IC-weights in a single plot
 plot.thr.weights <- function(results, true.hypo) {
   # Plot the average IC weights
   results %>%
     group_by(N, R2, rho, Method) %>%
-    summarize(Weight = mean(true.weight),
+    summarize(weight = mean(true.weight),
               THR = mean(best.hypo == true.hypo)) %>%
-    pivot_longer(c(Weight, THR), 
+    pivot_longer(c(weight, THR), 
                  names_to = "Measure",
                  values_to = "Value") %>%
-    mutate(R2 = paste0(expression(italic(R^2)), " == ", round(R2, 2)),
+    mutate(R2 = ifelse(R2 < 0.02 | R2 > .9, 
+                       paste0(expression(italic(R^2)), " == ", sub('.', '', paste0(round(R2, 4)))),
+                       paste0(expression(italic(R^2)), " == ", sub('.', '', paste0(round(R2, 2))))),
            rho = paste0("rho == ", rho),
            `Sample size` = N,
-           Method2 = ifelse(Measure == "Weight", 
+           Method2 = ifelse(Measure == "weight", 
                             paste0("Mean ", Method, " ", Measure),
                             paste0(Method, " ", Measure))) %>%
     ungroup() %>%
@@ -228,9 +253,9 @@ plot.thr.weights <- function(results, true.hypo) {
     geom_line() +
     jtools::theme_apa() +
     facet_grid(R2 ~ rho, labeller = label_parsed) +
-    scale_color_manual(values = c("#E41A1C", "#E41A1C", "#377EB8", "#377EB8")) +
-    scale_linetype_manual(values = c(1, 2, 1, 2)) +
-    scale_shape_manual(values = c(16, 17, 16, 17)) +
+    scale_color_manual(values = c("#E41A1C", "#377EB8", "#E41A1C", "#377EB8")) +
+    scale_linetype_manual(values = c(1, 1, 2, 2)) +
+    scale_shape_manual(values = c(16, 16, 17, 17)) +
     theme(legend.position = "bottom") +
     ylim(0, 1)
 }

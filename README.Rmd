@@ -1,0 +1,28 @@
+---
+title: "AIC-type model selection in small samples"
+output: md_document
+---
+
+This repository contains all files related to Kuiper, Volker & Laane (2022), AIC-type model selection in small samples. Below, you find a description of all files, the steps you have to take to reproduce all results, and the used packages included their versions. 
+
+# Files
+
+| Folder / File | Description                      |
+| ------------- | -------------------------------- |
+| `functions.R` | File containing R functions to run the simulations in R |
+| `aic(c)_simulations.R` | File containing the code to run the AIC / AICc simulations |
+| `goric(c)_simulations.R` | File containing additional code to run GORIC / GORICc simulations in R (part of this is included in the appendix of the paper) |
+| `create_figures.R` | Code to reproduce the figures shown in the paper (plus additional figures, not shown in the paper), as well as some of the output reported in the text |
+| figures | Folder containing all output figures used in the paper (and additional figures for papers not reported in the paper; `aicc_out1b1_thr.pdf`, `aicc_out1b3_thr.pdf`, `aicc_out2a_thr_weight.pdf`, `aicc_out2b_thr_weight.pdf`, `aicc_out2c_thr_weight.pdf`, `goriccRatio1234Set2_thr_weight.pdf`, `goriccRatio1234Set4_thr_weight.pdf`). |
+| results | Output of the simulations, empty because the files are too large to store online. |
+
+To recreate all results and the output of the simulations, you can sequentially run the files `functions.R`, `aic(c)_simulations.R`, `goric(c)_simulations.R` and `create_figures.R`.
+
+# Packages
+
+Below, all packages used in the making of this paper are listed (including version number), regardless of whether they were loaded directly, or imported by a different packages. The required packages that were loaded directly can be found in the files `aic(c)_simulations.R` or `goric(c)_simulations.R`.
+
+```{r, echo=F}
+sessioninfo::session_info()
+```
+

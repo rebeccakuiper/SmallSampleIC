@@ -4,15 +4,15 @@
 ###############################################################################
 
 
-lapply(c("MASS",    "purrr",    "magrittr", "dplyr", "furrr",
-         "ggplot2", "devtools", "jtools",   "tidyr"),
-       function(x) install.packages(x))
+# lapply(c("MASS",    "purrr",    "magrittr", "dplyr", "furrr",
+#          "ggplot2", "devtools", "jtools",   "tidyr"),
+#        function(x) install.pacOkages(x))
 
 lapply(c("purrr",   "magrittr", "dplyr",  "furrr",
          "ggplot2", "devtools", "jtools", "tidyr"),
        function(x) library(x, character.only = TRUE))
 
-install_github("LeonardV/restriktor")
+# install_github("LeonardV/restriktor")
 library(restriktor)
 
 source("functions.R")
