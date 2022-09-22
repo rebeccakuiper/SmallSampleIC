@@ -49,15 +49,17 @@ additional figures for papers not reported in the paper;
 </tr>
 <tr class="even">
 <td>results</td>
-<td>Output of the simulations, empty because the files are too large to
-store online.</td>
+<td>Output of the simulations, loaded in the
+<code>create_figures.R</code> file to quickly access the results.</td>
 </tr>
 </tbody>
 </table>
 
 To recreate all results and the output of the simulations, you can
 sequentially run the files `functions.R`, `aic(c)_simulations.R`,
-`goric(c)_simulations.R` and `create_figures.R`.
+`goric(c)_simulations.R` and `create_figures.R`. You could, however,
+also start from the file `create_figures.R`, if re-running the
+simulations is not an option.
 
 # Packages
 
@@ -77,7 +79,7 @@ that were loaded directly can be found in the files
     ##  collate  Dutch_Netherlands.utf8
     ##  ctype    Dutch_Netherlands.utf8
     ##  tz       Europe/Berlin
-    ##  date     2022-09-07
+    ##  date     2022-09-05
     ##  pandoc   2.18 @ C:/Program Files/RStudio/bin/quarto/bin/tools/ (via rmarkdown)
     ## 
     ## ─ Packages ───────────────────────────────────────────────────────────────────

@@ -186,7 +186,7 @@ format.data <- function(results, true.hypo) {
 }
 
 # create the figures for the true hypothesis rate.
-plot.thr <- function(results, true.hypo) {
+plot.thr <- function(results, true.hypo, labels) {
   # Plot the true hypothesis rate
   results %>%
     group_by(N, R2, rho, Method) %>%
@@ -200,15 +200,40 @@ plot.thr <- function(results, true.hypo) {
     ggplot(aes(x = `Sample size`, y = THR, col = Method)) +
     geom_point() +
     geom_line() +
-    scale_color_brewer(palette = "Set1", labels = c("AIC THR", "AICc THR")) +
+    scale_color_brewer(palette = "Set1", labels = labels) +
     jtools::theme_apa() +
     facet_grid(R2 ~ rho, labeller = label_parsed) +
     theme(legend.position = "bottom") +
     ylim(0, 1)
 }
 
+plot.thr.se <- function(results, true.hypo, shapes, labels) {
+  # Plot the true hypothesis rate
+  results %>%
+    group_by(N, R2, rho, Method) %>%
+    summarize(THR = mean(best.hypo == true.hypo),
+              lower = max(0, prop.test(sum(best.hypo == true.hypo), length(best.hypo))$conf.int[1]),
+              upper = min(1, prop.test(sum(best.hypo == true.hypo), length(best.hypo))$conf.int[2])) %>%
+    mutate(R2 = ifelse(R2 < 0.02 | R2 > .9, 
+                       paste0(expression(italic(R^2)), " == ", sub('.', '', paste0(round(R2, 4)))),
+                       paste0(expression(italic(R^2)), " == ", sub('.', '', paste0(round(R2, 2))))),
+           rho = paste0("rho == ", rho),
+           `Sample size` = N) %>%
+    ungroup() %>%
+    ggplot(aes(x = `Sample size`, y = THR, col = Method, fill = Method, shape = Method)) +
+    geom_point() +
+    geom_line() +
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, col = "transparent") +
+    scale_color_brewer(palette = "Set1", labels = labels) +
+    scale_fill_brewer(palette = "Set1", labels = labels) +
+    scale_shape_manual(values = shapes, labels = labels) +
+    theme_apa(remove.y.gridlines = F) +
+    facet_grid(R2 ~ rho, labeller = label_parsed) +
+    theme(legend.position = "bottom")
+}
+
 # create the figures for the IC-weights
-plot.weights <- function(results) {
+plot.weights <- function(results, labels) {
   # Plot the average IC weights
   results %>%
     group_by(N, R2, rho, Method) %>%
@@ -220,13 +245,54 @@ plot.weights <- function(results) {
            `Sample size` = N) %>%
     ungroup() %>%
     ggplot(aes(x = `Sample size`, y = weight, col = Method)) +
-    geom_point(shape = 17) +
+    geom_point() +
     geom_line(linetype = 2) +
-    scale_color_brewer(palette = "Set1", labels = c("Mean AIC weight", "Mean AICc weight")) +
+    scale_color_brewer(palette = "Set1", labels = labels) +
     jtools::theme_apa() +
     facet_grid(R2 ~ rho, labeller = label_parsed) +
     theme(legend.position = "bottom") +
     ylim(0, 1)
+}
+
+plot.weights.se <- function(results, shapes, labels) {
+  # Plot the average IC weights
+  results %>%
+    group_by(N, R2, rho, Method) %>%
+    summarize(weight = mean(true.weight),
+              lower = max(0, mean(true.weight) - qnorm(0.975)*(sd(true.weight)/sqrt(n()))),
+              upper = min(1, mean(true.weight) + qnorm(0.975)*(sd(true.weight)/sqrt(n())))) %>%
+    mutate(R2 = ifelse(R2 < 0.02 | R2 > .9, 
+                       paste0(expression(italic(R^2)), " == ", sub('.', '', paste0(round(R2, 4)))),
+                       paste0(expression(italic(R^2)), " == ", sub('.', '', paste0(round(R2, 2))))),
+           rho = paste0("rho == ", rho),
+           `Sample size` = N) %>%
+    ungroup() %>%
+    ggplot(aes(x = `Sample size`, y = weight, col = Method, fill = Method, shape = Method)) +
+    geom_point() +
+    geom_line(linetype = 2) +
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, col = "transparent") +
+    scale_color_brewer(palette = "Set1", labels = labels) +
+    scale_fill_brewer(palette = "Set1", labels = labels) +
+    scale_shape_manual(values = shapes, labels = labels) +
+    jtools::theme_apa(remove.y.gridlines = F) +
+    facet_grid(R2 ~ rho, labeller = label_parsed) +
+    theme(legend.position = "bottom")
+}
+
+plot.weights.boxplot <- function(results, labels) {
+  # Plot the average IC weights
+  results %>%
+    mutate(R2 = ifelse(R2 < 0.02 | R2 > .9, 
+                       paste0(expression(italic(R^2)), " == ", sub('.', '', paste0(round(R2, 4)))),
+                       paste0(expression(italic(R^2)), " == ", sub('.', '', paste0(round(R2, 2))))),
+           rho = paste0("rho == ", rho),
+           `Sample size` = as.factor(N)) %>%
+    ggplot(aes(x = `Sample size`, y = true.weight, col = Method)) +
+    geom_boxplot() +
+    scale_color_brewer(palette = "Set1", labels = labels) +
+    jtools::theme_apa(remove.y.gridlines = F) +
+    facet_grid(R2 ~ rho, labeller = label_parsed) +
+    theme(legend.position = "bottom")
 }
 
 # create the figures for the true hypothesis rate and IC-weights in a single plot
@@ -255,7 +321,43 @@ plot.thr.weights <- function(results, true.hypo) {
     facet_grid(R2 ~ rho, labeller = label_parsed) +
     scale_color_manual(values = c("#E41A1C", "#377EB8", "#E41A1C", "#377EB8")) +
     scale_linetype_manual(values = c(1, 1, 2, 2)) +
-    scale_shape_manual(values = c(16, 16, 17, 17)) +
+    scale_shape_manual(values = c(16, 17, 16, 17)) +
     theme(legend.position = "bottom") +
     ylim(0, 1)
+}
+
+plot.thr.weights.se <- function(results, true.hypo) {
+  # Plot the average IC weights
+  results %>%
+    group_by(N, R2, rho, Method) %>%
+    summarize(mean__weight = mean(true.weight),
+              lower__weight = max(0, mean(true.weight) - qnorm(0.975)*(sd(true.weight)/sqrt(n()))),
+              upper__weight = min(1, mean(true.weight) + qnorm(0.975)*(sd(true.weight)/sqrt(n()))),
+              mean__THR = mean(best.hypo == true.hypo),
+              lower__THR = max(0, prop.test(sum(best.hypo == true.hypo), length(best.hypo))$conf.int[1]),
+              upper__THR = min(1, prop.test(sum(best.hypo == true.hypo), length(best.hypo))$conf.int[2])) %>%
+    pivot_longer(c(mean__weight:upper__THR), 
+                 names_to = c(".value", "Measure"),
+                 names_pattern = "(.*)__(.*)",
+                 values_to = "Value") %>%
+    mutate(R2 = ifelse(R2 < 0.02 | R2 > .9, 
+                       paste0(expression(italic(R^2)), " == ", sub('.', '', paste0(round(R2, 4)))),
+                       paste0(expression(italic(R^2)), " == ", sub('.', '', paste0(round(R2, 2))))),
+           rho = paste0("rho == ", rho),
+           `Sample size` = N,
+           Method2 = ifelse(Measure == "weight", 
+                            paste0("Mean ", Method, " ", Measure),
+                            paste0(Method, " ", Measure))) %>%
+    ungroup() %>%
+    ggplot(aes(x = `Sample size`, y = mean, col = Method2, fill = Method2, linetype = Method2, shape = Method2)) +
+    geom_point() +
+    geom_line() +
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, col = "transparent") +
+    jtools::theme_apa(remove.y.gridlines = FALSE) +
+    facet_grid(R2 ~ rho, labeller = label_parsed) +
+    scale_color_manual(values = c("#E41A1C", "#377EB8", "#E41A1C", "#377EB8")) +
+    scale_fill_manual(values = c("#E41A1C", "#377EB8", "#E41A1C", "#377EB8")) +
+    scale_linetype_manual(values = c(1, 1, 2, 2)) +
+    scale_shape_manual(values = c(16, 17, 16, 17)) +
+    theme(legend.position = "bottom")
 }
